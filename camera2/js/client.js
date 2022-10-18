@@ -18,8 +18,9 @@ if (!navigator.mediaDevices ||
 if (navigator.mediaDevices.getUserMedia || navigator.getUserMedia || navigator.webkitGetUserMedia || navigator
     .mozGetUserMedia) {
     var constraints = {
-        audio: true,
-        video: true
+        //不采集声音
+        audio: false,
+        video: { width: 720, height: 1280 }
     };
     //调用用户媒体设备, 访问摄像头
     getUserMedia(constraints, success, error);
