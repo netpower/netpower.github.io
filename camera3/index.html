@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+<title>Camera Demo</title>
+<style>
+      body {
+      margin: 0;
+  }
+.container {
+    height: 150px;
+    background: #f4f4f4;
+}
+input {
+    margin: 20px;
+    display: inline-block;
+}
+video {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+#canvas2 {
+    position: fixed;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+</style>
+<!-- vconsole引入 -->
+<script src="https://unpkg.com/vconsole/dist/vconsole.min.js"></script>
+    <script type="text/javascript">
+        new VConsole()
+    </script>
+</head>
+<body>
+<div class="container">
+<input type="button" title="开启摄像头" value="开启摄像头" muted onclick="getMedia();" />
+<input type="button" title="切换摄像头" value="切换摄像头" muted onclick="changeMode();" />
+<video>
+    height="120px"
+  autoplay="autoplay"
+  x5-video-player-type="h5-page"
+  playsinline="true"
+  webkit-playsinline="true"
+  x5-video-ignore-metadata="false"
+  x5-video-player-fullscreen="false"
+  x5-video-player-orientation="landscape"
+</video>
+<!-- <input type="button" title="视频" value="视频绘制" onclick="getVideo();" />
+-->
+<canvas id="canvas2"></canvas>
+</div>
+<script>
+    // 老的浏览器可能根本没有实现 mediaDevices，所以我们可以先设置一个空的对象
+if (navigator.mediaDevices === undefined) {
+    navigator.mediaDevices = {};
+}
+
+// 一些浏览器部分支持 mediaDevices。我们不能直接给对象设置 getUserMedia
+// 因为这样可能会覆盖已有的属性。这里我们只会在没有getUserMedia属性的时候添加它。
+if (navigator.mediaDevices.getUserMedia === undefined) {
+    navigator.mediaDevices.getUserMedia = function(constraints) {
+
+        // 首先，如果有getUserMedia的话，就获得它
+        var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+        // 一些浏览器根本没实现它 - 那么就返回一个error到promise的reject来保持一个统一的接口
+        if (!getUserMedia) {
+            return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+        }
+
+        // 否则，为老的navigator.getUserMedia方法包裹一个Promise
+        return new Promise(function(resolve, reject) {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+        });
+    }
+}
+
+var video = document.querySelector('video');
+var audio, audioType;
+var canvas2 = document.getElementById('canvas2');
+var context2 = canvas2.getContext('2d');
+var mode = 'user'
+var streamData
+
+function getMedia() {
+    if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+            'video': {
+                frameRate: {
+                    ideal: 10,
+                    max: 15
+                },
+                facingMode: mode
+            },
+            'audio':false
+        }).then(successFunc).catch(errorFunc)
+    }
+    else {
+        alert('Native device media streaming (getUserMedia) not supported in this browser.');
+    }
+}
+
+function successFunc(stream) {
+    streamData = stream
+    if (video.mozSrcObject !== undefined) {
+        //Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持
+        video.mozSrcObject = stream;
+    } else if ('srcObject' in video) {
+        console.log('srcObject')
+        video.srcObject = stream;
+    } else {
+        console.log('src')
+        // 防止在新的浏览器里使用它，应为它已经不再支持了
+        video.src = window.URL.createObjectURL(stream);
+    }
+
+    video.style.display = 'block';
+    getVideo()
+
+    video.onloadedmetadata = function(e) {
+        console.log('onloadedmetadata')
+        // video.play();
+    };
+
+    // 音频
+    // audio = new Audio();
+    // audioType = getAudioType(audio);
+    // if (audioType) {
+    //     audio.src = 'polaroid.' + audioType;
+    //     audio.play();
+    // }
+}
+
+function errorFunc(e) {
+    console.log('获取资源错误', e)
+}
+
+// 切换摄像头
+function changeMode() {
+    mode = mode === 'user' ? 'environment' : 'user'
+    streamData.getTracks()[0].stop()
+    getMedia()
+}
+
+//获取音频格式
+function getAudioType(element) {
+    if (element.canPlayType) {
+        if (element.canPlayType('audio/mp4; codecs="mp4a.40.5"') !== '') {
+            return ('aac');
+        } else if (element.canPlayType('audio/ogg; codecs="vorbis"') !== '') {
+            return ("ogg");
+        }
+    }
+    return false;
+}
+//视频
+function getVideo() {
+    drawVideoAtCanvas(video, context2);
+}
+
+// 将视频帧绘制到Canvas对象上,Canvas每60ms切换帧，形成肉眼视频效果
+function drawVideoAtCanvas(video, context2) {
+    canvas2.style.display = 'block';
+    window.setInterval(function () {
+        var w = parseInt(getComputedStyle(video).width)
+        var h = parseInt(getComputedStyle(video).height)
+        var x = (parseInt(getComputedStyle(canvas2).width) - w) / 2
+        context2.drawImage(video, x, 0, w, h);
+    }, 60);
+}
+</script>
+</body>
+
+</html>
