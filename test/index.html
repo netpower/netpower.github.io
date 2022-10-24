@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web AeTimeline</title>
+</head>
+
+<body>
+    <div>
+        <h1>AeTimeline人脸检测和美颜</h1>
+        <div>
+            <button id="initBtn" style="height:36px">初始化引擎</button>
+            <button id="initFaceBtn" style="height:36px">初始化人脸检测</button>
+            <button id="startCameraBtn" style="height:36px">打开摄像头</button>
+            <button disabled id="switchCameraBtn" style="height:36px">切换摄像头</button>
+        </div>
+        <div>
+            <canvas id="canvas" class="video"></canvas>
+        </div>
+    </div>
+    <video id="video" muted autoplay class="video"></video>
+    <script src="./AeTimeline.js"></script>    
+    <script type='text/javascript'>
+        window.addEventListener("wasmLoaded", () => {
+            console.log("wasmLoaded")
+
+            initBtn.addEventListener("click", () => {
+                Module._AEWebInit()
+            })
+
+            initFaceBtn.addEventListener("click", () => {
+                res = Module._AEWebCreateFaceHandle()
+                console.log(res)
+            })
+        });
+        var shouldFaceUser = true;
+        var stream = null;
+        var canvasTimer = null;
+        var faceImgBuffer = null;
+        var faceImgBufferLength = 0;
+        var w = 640;
+        var h = 480;
+
+        window.addEventListener('DOMContentLoaded', function() {            
+            var isStreaming = false;
+            switchcamerabtn = document.getElementById('switchCameraBtn');
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            // Wait until the video stream canvas play
+            video.addEventListener('canplay', function(e) {
+                if (!isStreaming) {
+                    // videoWidth isn't always set correctly in all browsers
+                    if (video.videoWidth > 0) h = video.videoHeight / (video.videoWidth / w);
+                    canvas.setAttribute('width', w);
+                    canvas.setAttribute('height', h);
+                    isStreaming = true;
+                }
+            }, false);
+
+            // Wait for the video to start to play
+            video.addEventListener('play', function() {
+                //Setup image memory
+                //var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                //var d = id.data;
+
+                // if (wasmModuleLoaded) {
+                //     mallocAndCallSFilter();
+                // } else {
+                //     wasmModuleLoadedCallbacks.push(mallocAndCallSFilter);
+                // }
+
+                // function mallocAndCallSFilter() {
+                //     if (dst != null)
+                //     {
+                //         _free(dst);
+                //         dst = null;
+                //     }
+
+                //     dst = _malloc(d.length);
+
+                //     //console.log("What " + d.length);
+
+                //     sFilter();
+                //}
+            });
+
+            // check whether we can use facingMode
+            var supports = navigator.mediaDevices.getSupportedConstraints();
+            if (supports['facingMode'] === true) {
+                switchcamerabtn.disabled = false;
+            }
+
+            startCameraBtn.addEventListener("click", () => {
+                Module._AEWebCreateBeautyEngine()
+                capture();
+                captureToCanvas();                
+            })
+
+            switchcamerabtn.addEventListener('click', function() {
+                if (stream == null)
+                    return
+
+                stream.getTracks().forEach(t => {
+                    t.stop();
+                });
+
+                shouldFaceUser = !shouldFaceUser;
+                capture();
+            });                    
+        });
+        function capture() {
+            var constraints = { audio: false, video: { width: 640, height: 480, facingMode: shouldFaceUser ? 'user' : 'environment' } };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(mediaStream) {
+                    var video = document.querySelector('video');
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    //video.onloadedmetadata = function(e) {
+                        //video.play();
+                    //};
+                })
+                .catch(function(err) {
+                    console.log(err.message);
+                });
+        }
+
+        function captureToCanvas () {
+            let that = this;
+            try {
+                // 根据视频大小设置canvas大小
+                // let w = that.ctx.videoWidth;
+                // let h = that.ctx.videoHeight;
+                //that.ctx.width = w;
+                //that.ctx.height = h;
+                var canvas = document.getElementById('canvas');
+
+                var imageData = that.ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                if (imageData.length != faceImgBufferLength && faceImgBuffer != null) {
+                    Module._free(faceImgBuffer);
+                    faceImgBuffer = null;
+                }
+                if (faceImgBuffer == null)
+                {
+                    faceImgBuffer = Module._malloc(imageData.length);
+                    faceImgBufferLength = imageData.length;
+                }
+
+
+                HEAPU8.set(imageData, faceImgBuffer);
+                let count = Module._AEWebDetectFace(faceImgBuffer, canvas.width, canvas.height, 0, 0);
+                that.ctx.drawImage(that.video, 0, 0, canvas.width, canvas.height);
+             } catch (e) {
+               console.log(e);
+             };
+             // 33毫秒绘制一次
+             that.canvasTimer = setTimeout(that.captureToCanvas.bind(that), 33);
+       }
+    </script>
+</body>
+</html>
