@@ -11,7 +11,7 @@
     <div>
         <h1>AeTimeline人脸检测和美颜</h1>
         <div>
-            <button id="initBtn" style="height:36px">初始化引擎</button>
+            <button disabled id="initBtn" style="height:36px">初始化引擎</button>
             <button disabled id="initFaceBtn" style="height:36px">初始化人脸检测</button>
             <button disabled id="startCameraBtn" style="height:36px">打开摄像头</button>
             <button disabled id="switchCameraBtn" style="height:36px">切换摄像头</button>
@@ -27,7 +27,7 @@
     <script type='text/javascript'>
         window.addEventListener("wasmLoaded", () => {
             console.log("wasmLoaded")
-
+            initBtn.disabled = false;
             initBtn.addEventListener("click", () => {
                 Module._AEWebInit()
                 initFaceBtn.disabled = false;
@@ -50,19 +50,7 @@
         var w = 640;
         var h = 480;
         var ctx = null;
-
-        // function drawScene() {
-        //     gl.clear(gl.COLOR_BUFFER_BIT);
-        //     gl.useProgram(shaderProgram);
-
-        //     // Turn on the vertex attribute
-        //     gl.enableVertexAttribArray(positionLocation);
-        //     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        //     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-        //     // Draw the rectangle
-        //     gl.drawArrays(gl.TRIANGLES, 0, 6);
-        // }
+        var textureId = null;
 
         const gl = document.getElementById('canvas').getContext("webgl");
         // Only continue if WebGL is available and working
@@ -89,22 +77,6 @@
 
             return tex;
         }
-
-        var textureId = null;   
-        // function render() {
-        //     // https://www.chuyouxiang.com/archives/1014
-        //     var canvasId  = 'canvas';
-        //     var strBuffer = new TextEncoder().encode(canvasId);
-        //     var strPointer = Module._malloc(strBuffer.length + 1);
-        //     Module.HEAPU8.set(strBuffer, strPointer);
-        //     Module.HEAPU8[strPointer + strBuffer.length] = 0;
-
-        //     Module._AEWebMakeCurrent(strPointer);
-        //     Module._AEWebTestRender(strPointer);
-        //     Module._free(strPointer);
-        //     requestAnimationFrame(render);
-        // }
-
 
         function render() {
             // https://www.chuyouxiang.com/archives/1014
