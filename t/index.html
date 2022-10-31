@@ -177,7 +177,7 @@
                 Module._AEWebCreateBeautyEngine()
                 capture();
                 //captureToCanvas();                
-                requestAnimationFrame(render);
+                //requestAnimationFrame(render);
                 if (supports['facingMode'] === true) {
                     switchcamerabtn.disabled = false;
                 }                
@@ -219,9 +219,9 @@
                     stream = mediaStream;
                     video.srcObject = mediaStream;
                     console.log(stream);
-                    //video.onloadedmetadata = function(e) {
-                        //video.play();
-                    //};
+                    video.onloadedmetadata = function(e) {
+                        video.play();
+                    };
                 })
                 .catch(function(err) {
                     console.log(err.message);
