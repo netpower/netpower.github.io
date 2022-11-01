@@ -52,8 +52,8 @@
         var faceRGBBuffer = null;
         var faceFrameBuffer = null;
         var texture = null;
-        var w = 640;
-        var h = 480;
+        var mWidth  = 640;
+        var mHeight = 480;
         var ctx = null;
         var textureId = null;
 
@@ -136,9 +136,11 @@
             video.addEventListener('canplay', function(e) {
                 if (!isStreaming) {
                     // videoWidth isn't always set correctly in all browsers
-                    if (video.videoWidth > 0) h = video.videoHeight / (video.videoWidth / w);
-                    canvas.setAttribute('width', w);
-                    canvas.setAttribute('height', h);
+                    if (video.videoWidth > 0) mHeight = video.videoHeight / (video.videoWidth / mWidth);
+                    canvas.setAttribute('width', mWidth);
+                    canvas.setAttribute('height', mHeight);
+                    console.log("video size is:"+ video.videoWidth + "x" + video.videoHeight);
+                    console.log("set canvas size:"+ mWidth + "x" + mHeight);
                     isStreaming = true;
                 }
             }, false);
@@ -217,7 +219,15 @@
                     var video = document.querySelector('video');
                     stream = mediaStream;
                     video.srcObject = mediaStream;
-                    console.log(stream);
+                    //console.log(stream);
+                    var videoW = stream.getVideoTracks()[0].getSettings().width;
+                    var videoH = stream.getVideoTracks()[0].getSettings().height;
+                    // stream.getVideoTracks()[0].getSettings().deviceId
+                    // stream.getVideoTracks()[0].getSettings().frameRate
+                    // stream.getVideoTracks()[0].getSettings().height                    
+                    // stream.getVideoTracks()[0].getSettings().frameRate
+                    console.log("videoW:"+ videoW + " videoH:" + videoH);
+
                     video.onloadedmetadata = function(e) {
                         video.play();
                     };
