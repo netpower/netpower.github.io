@@ -136,7 +136,13 @@
             video.addEventListener('canplay', function(e) {
                 if (!isStreaming) {
                     // videoWidth isn't always set correctly in all browsers
-                    if (video.videoWidth > 0) mHeight = video.videoHeight / (video.videoWidth / mWidth);
+                    // ？？？ comment out by now -->
+                    //if (video.videoWidth > 0) mHeight = video.videoHeight / (video.videoWidth / mWidth);
+                    // <---
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        mWidth  = video.videoWidth;
+                        mHeight = video.videoHeight;
+                    }
                     canvas.setAttribute('width', mWidth);
                     canvas.setAttribute('height', mHeight);
                     console.log("video size is:"+ video.videoWidth + "x" + video.videoHeight);
