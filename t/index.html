@@ -52,8 +52,8 @@
         var faceRGBBuffer = null;
         var faceFrameBuffer = null;
         var texture = null;
-        var mWidth  = 640;
-        var mHeight = 480;
+        var mWidth  = 1280;
+        var mHeight = 720;
         var ctx = null;
         var textureId = null;
 
@@ -219,7 +219,7 @@
             });                    
         });
         function capture() {
-            var constraints = { audio: false, video: { width: 640, height: 480, facingMode: shouldFaceUser ? 'user' : 'environment' } };
+            var constraints = { audio: false, video: { width: 1280, height: 720, facingMode: shouldFaceUser ? 'user' : 'environment' } };
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(function(mediaStream) {
                     var video = document.querySelector('video');
