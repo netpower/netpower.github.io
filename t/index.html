@@ -16,10 +16,11 @@
     <div>
         <h1>AeTimeline人脸检测和美颜</h1>
         <div>
-            <button disabled id="initBtn" style="height:36px">初始化引擎</button>
-            <button disabled id="initFaceBtn" style="height:36px">初始化人脸检测</button>
-            <button disabled id="startCameraBtn" style="height:36px">打开摄像头</button>
-            <button disabled id="switchCameraBtn" style="height:36px">切换摄像头</button>
+            <!-- <button disabled id="initBtn" style="height:64px">初始化引擎</button>  -->
+            <!-- <button disabled id="initFaceBtn" style="height:64px">初始化人脸检测</button>  -->
+            <button disabled id="startCameraBtn" style="height:64px">打开摄像头</button>
+            <button disabled id="switchCameraBtn" style="height:64px">切换摄像头</button>
+            <input disabled id="beautyCheck" type="checkbox" checked="true">开启美颜</input> 
             <input disabled id="lipCheck" type="checkbox">开启美妆</input> 
             <input disabled id="stickerCheck" type="checkbox">开启贴纸</input> 
         </div>
@@ -27,26 +28,28 @@
             <canvas id="canvas" class="video"></canvas>
         </div>
     </div>
-    <video id="video" playsInline class="video"></video>
     <script src="./AeTimeline.js"></script>    
     <script type='text/javascript'>
         window.addEventListener("wasmLoaded", () => {
             console.log("wasmLoaded")
-            initBtn.disabled = false;
-            initBtn.addEventListener("click", () => {
-                Module._AEWebInit()
-                initFaceBtn.disabled = false;
-            })
+            //initBtn.disabled = false;
+            // initBtn.addEventListener("click", () => {
+            //     Module._AEWebInit()
+            //     initFaceBtn.disabled = false;
+            // })
 
-            initFaceBtn.addEventListener("click", () => {
-                res = Module._AEWebCreateFaceHandle()
-                console.log(res)
-                startCameraBtn.disabled = false;
-            })
+            // initFaceBtn.addEventListener("click", () => {
+            //     res = Module._AEWebCreateFaceHandle()
+            //     console.log(res)
+            //     startCameraBtn.disabled = false;
+            // })
+            Module._AEWebInit();
+            res = Module._AEWebCreateFaceHandle()
+            console.log(res)
+            startCameraBtn.disabled = false;
         });
         var shouldFaceUser = true;
         var stream = null;
-        var canvasTimer = null;
         var faceImgBuffer = null;
         var faceImgBufferLength = 0;
         var faceRGBBuffer = null;
@@ -54,8 +57,8 @@
         var texture = null;
         var mWidth  = 1280;
         var mHeight = 720;
-        var ctx = null;
         var textureId = null;
+        var video = null;   //摄像头的视频源 HTMLVideoElement
 
         const gl = document.getElementById('canvas').getContext("webgl");
         // Only continue if WebGL is available and working
@@ -116,11 +119,10 @@
             //console.log('texture:' + textureId);            
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, texture);
-            //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
             detectFaceGL();
-            Module._AERenderCameraImage(strPointer, textureId);
+            Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
             Module._free(strPointer);
             requestAnimationFrame(render);
         }
@@ -128,7 +130,10 @@
         window.addEventListener('DOMContentLoaded', function() {            
             var isStreaming = false;
             switchcamerabtn = document.getElementById('switchCameraBtn');
-            video = document.getElementById('video');
+            video = document.createElement("video");
+            video.playsInline = true;
+            video.muted = true;            
+
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
 
@@ -151,33 +156,6 @@
                 }
             }, false);
 
-            // Wait for the video to start to play
-            video.addEventListener('play', function() {
-                //Setup image memory
-                //var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                //var d = id.data;
-
-                // if (wasmModuleLoaded) {
-                //     mallocAndCallSFilter();
-                // } else {
-                //     wasmModuleLoadedCallbacks.push(mallocAndCallSFilter);
-                // }
-
-                // function mallocAndCallSFilter() {
-                //     if (dst != null)
-                //     {
-                //         _free(dst);
-                //         dst = null;
-                //     }
-
-                //     dst = _malloc(d.length);
-
-                //     //console.log("What " + d.length);
-
-                //     sFilter();
-                //}
-            });
-
             // check whether we can use facingMode
             var supports = navigator.mediaDevices.getSupportedConstraints();
 
@@ -187,9 +165,15 @@
                 requestAnimationFrame(render);
                 if (supports['facingMode'] === true) {
                     switchcamerabtn.disabled = false;
-                }                
+                } 
+                beautyCheck.disabled = false;               
                 lipCheck.disabled = false;
                 stickerCheck.disabled = false;
+            })
+
+            beautyCheck.addEventListener("change", () => {
+                lipCheck.disabled       = !beautyCheck.checked;
+                stickerCheck.disabled   = !beautyCheck.checked;
             })
 
             lipCheck.addEventListener("change", () => {
@@ -222,18 +206,12 @@
             var constraints = { audio: false, video: { width: 1280, height: 720, facingMode: shouldFaceUser ? 'user' : 'environment' } };
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(function(mediaStream) {
-                    var video = document.querySelector('video');
                     stream = mediaStream;
                     video.srcObject = mediaStream;
                     //console.log(stream);
                     var videoW = stream.getVideoTracks()[0].getSettings().width;
                     var videoH = stream.getVideoTracks()[0].getSettings().height;
-                    // stream.getVideoTracks()[0].getSettings().deviceId
-                    // stream.getVideoTracks()[0].getSettings().frameRate
-                    // stream.getVideoTracks()[0].getSettings().height                    
-                    // stream.getVideoTracks()[0].getSettings().frameRate
                     console.log("videoW:"+ videoW + " videoH:" + videoH);
-
                     video.onloadedmetadata = function(e) {
                         video.play();
                     };
@@ -289,62 +267,6 @@
              };            
         }
 
-
-        function detectFaceRGB (){
-            try {
-                var canvas = document.getElementById('canvas');
-                var curContext = canvas.getContext('2d');
-
-                var imageData = curContext.getImageData(0, 0, canvas.width, canvas.height).data;
-                if (imageData.length != faceImgBufferLength && faceImgBuffer != null) {
-                    Module._free(faceImgBuffer);
-                    faceImgBuffer = null;
-                }
-                if (faceImgBuffer == null)
-                {
-                    faceImgBuffer = Module._malloc(imageData.length);
-                    faceImgBufferLength = imageData.length;
-                }
-                HEAPU8.set(imageData, faceImgBuffer);
-                let count = Module._AEWebDetectFace(faceImgBuffer, canvas.width, canvas.height, 0, 0);
-             } catch (e) {
-               console.log(e);
-             };            
-        }
-
-
-
-        function captureToCanvas () {
-            let that = this;
-            try {
-                // 根据视频大小设置canvas大小
-                // let w = that.ctx.videoWidth;
-                // let h = that.ctx.videoHeight;
-                //that.ctx.width = w;
-                //that.ctx.height = h;
-                var canvas = document.getElementById('canvas');
-
-                var imageData = that.ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-                if (imageData.length != faceImgBufferLength && faceImgBuffer != null) {
-                    Module._free(faceImgBuffer);
-                    faceImgBuffer = null;
-                }
-                if (faceImgBuffer == null)
-                {
-                    faceImgBuffer = Module._malloc(imageData.length);
-                    faceImgBufferLength = imageData.length;
-                }
-
-
-                HEAPU8.set(imageData, faceImgBuffer);
-                let count = Module._AEWebDetectFace(faceImgBuffer, canvas.width, canvas.height, 0, 0);
-                //that.ctx.drawImage(that.video, 0, 0, canvas.width, canvas.height);
-             } catch (e) {
-               console.log(e);
-             };
-             // 33毫秒绘制一次
-             //that.canvasTimer = setTimeout(that.captureToCanvas.bind(that), 33);
-       }
     </script>
 </body>
 </html>
