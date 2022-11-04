@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <style>
+    .video {
+      width: 500px;
+      height: 500px;
+      margin: 10px;
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+<video id="video" class="video"></video>
+<canvas id="canvas" class="video"></canvas>
+
+
+<script>
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  function isiOS() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+  function isMobile() {
+    return isAndroid() || isiOS();
+  }
+
+  const videoWidth = 500
+  const videoHeight = 200
+
+  async function setupCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error(
+        'Browser API navigator.mediaDevices.getUserMedia not available');
+    }
+
+    const video = document.getElementById('video');
+    video.width = videoWidth;
+    video.height = videoHeight;
+
+    const mobile = isMobile();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      'audio': false,
+      // 'video':{ 'facingMode': "user" }//调用前置摄像头，后置摄像头使用video: { facingMode: { exact: "environment" } }
+      'video': {
+        facingMode: 'user',
+        //undefined 会拉伸填满
+        // width: mobile ? undefined : videoWidth,
+        // height: mobile ? undefined : videoHeight,
+      },
+    });
+    video.srcObject = stream;
+    console.log(video)
+    return new Promise((resolve) => {
+      video.onloadedmetadata = () => {
+        let cvs = document.getElementById('canvas')
+        let ctx = cvs.getContext('2d')
+        ctx.drawImage(video, 0, 0, cvs.width, cvs.height)
+        resolve(video);
+      };
+    });
+  }
+
+  async function loadVideo() {
+    const video = await setupCamera();
+    console.log(video)
+    video.play();
+    return video;
+  }
+
+  window.onload = async () => {
+    let video = await loadVideo();
+    let cvs = document.getElementById('canvas')
+    let ctx = cvs.getContext('2d')
+    function draw_frame() {
+      ctx.drawImage(video, 0, 0, cvs.width, cvs.height)
+      requestAnimationFrame(draw_frame)
+    }
+    draw_frame()
+  }
+
+</script>
+</body>
+</html>

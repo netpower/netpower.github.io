@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web AeTimeline</title>
+</head>
+
+<body>
+    <div>
+        <h1>AeTimeline人脸检测和美颜</h1>
+        <div>
+            <button id="initBtn" style="height:36px">初始化引擎</button>
+            <button id="initFaceBtn" style="height:36px">初始化人脸检测</button>
+            <button id="startCameraBtn" style="height:36px">打开摄像头</button>
+            <button disabled id="switchCameraBtn" style="height:36px">切换摄像头</button>
+        </div>
+        <div>
+            <canvas id="canvas" width="640"></canvas>
+        </div>
+        <video id="video" playsinline autoplay></video>
+    </div>
+    <script src="./AeTimeline.js"></script>    
+    <script type='text/javascript'>
+        window.addEventListener("wasmLoaded", () => {
+            console.log("wasmLoaded")
+
+            initBtn.addEventListener("click", () => {
+                Module._AEWebInit()
+            })
+
+            initFaceBtn.addEventListener("click", () => {
+                res = Module._AEWebCreateFaceHandle()
+                console.log(res)
+            })
+        });
+        var shouldFaceUser = true;
+        var stream = null;
+        var w = 640;
+        var h = 480;
+
+        window.addEventListener('DOMContentLoaded', function() {            
+            var isStreaming = false;
+            switchcamerabtn = document.getElementById('switchCameraBtn');
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            // Wait until the video stream canvas play
+            video.addEventListener('canplay', function(e) {
+                if (!isStreaming) {
+                    // videoWidth isn't always set correctly in all browsers
+                    if (video.videoWidth > 0) h = video.videoHeight / (video.videoWidth / w);
+                    canvas.setAttribute('width', w);
+                    canvas.setAttribute('height', h);
+                    isStreaming = true;
+                }
+            }, false);
+
+            // Wait for the video to start to play
+            video.addEventListener('play', function() {
+                //Setup image memory
+                //var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                //var d = id.data;
+
+                // if (wasmModuleLoaded) {
+                //     mallocAndCallSFilter();
+                // } else {
+                //     wasmModuleLoadedCallbacks.push(mallocAndCallSFilter);
+                // }
+
+                // function mallocAndCallSFilter() {
+                //     if (dst != null)
+                //     {
+                //         _free(dst);
+                //         dst = null;
+                //     }
+
+                //     dst = _malloc(d.length);
+
+                //     //console.log("What " + d.length);
+
+                //     sFilter();
+                //}
+            });
+
+            // check whether we can use facingMode
+            var supports = navigator.mediaDevices.getSupportedConstraints();
+            if (supports['facingMode'] === true) {
+                switchcamerabtn.disabled = false;
+            }
+
+            startCameraBtn.addEventListener("click", () => {
+                Module._AEWebCreateBeautyEngine()
+                capture();
+            })
+
+            switchcamerabtn.addEventListener('click', function() {
+                if (stream == null)
+                    return
+
+                stream.getTracks().forEach(t => {
+                    t.stop();
+                });
+
+                shouldFaceUser = !shouldFaceUser;
+                capture();
+            });                    
+        });
+        function capture() {
+            var constraints = { audio: false, video: { width: 640, height: 480, facingMode: shouldFaceUser ? 'user' : 'environment' } };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(mediaStream) {
+                    var video = document.querySelector('video');
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    video.onloadedmetadata = function(e) {
+                        video.play();
+                    };
+                })
+                .catch(function(err) {
+                    console.log(err.message);
+                });
+        }        
+    </script>
+</body>
+</html>

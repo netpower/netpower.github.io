@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Web AeTimeline</title>
+</head>
+
+<body>
+    <div>
+        <h1>AeTimeline人脸检测和美颜</h1>
+        <div>
+            <button id="initBtn" style="height:36px">初始化引擎</button>
+            <button id="initFaceBtn" style="height:36px">初始化人脸检测</button>
+            <button id="startCameraBtn" style="height:36px">打开摄像头</button>
+            <button disabled id="switchCameraBtn" style="height:36px">切换摄像头</button>
+        </div>
+        <div>
+            <canvas id="canvas" class="video"></canvas>
+        </div>
+    </div>
+    <video id="video" muted autoplay class="video"></video>
+    <script src="./AeTimeline.js"></script>    
+    <script type='text/javascript'>
+        window.addEventListener("wasmLoaded", () => {
+            console.log("wasmLoaded")
+
+            initBtn.addEventListener("click", () => {
+                Module._AEWebInit()
+            })
+
+            initFaceBtn.addEventListener("click", () => {
+                res = Module._AEWebCreateFaceHandle()
+                console.log(res)
+            })
+        });
+        var shouldFaceUser = true;
+        var stream = null;
+        var canvasTimer = null;
+        var faceImgBuffer = null;
+        var faceImgBufferLength = 0;
+        var w = 640;
+        var h = 480;
+
+        const gl = document.getElementById('canvas').getContext("webgl");
+
+        // Only continue if WebGL is available and working
+        if (gl === null) {
+            alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+        }
+
+    // Vertex shader program
+    const vsSource = `
+        attribute vec2 a_position;
+        varying vec2 v_texCoord;
+
+        void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoord = a_position*.5+.5;
+            v_texCoord.y = 1.-v_texCoord.y;
+        }`;
+
+    // Fragment shader program
+    const fsSource = `
+        precision mediump float;
+
+        uniform sampler2D u_image;
+        varying vec2 v_texCoord;
+
+        void main() {
+            gl_FragColor = texture2D(u_image, v_texCoord);
+        }`;
+
+
+    const positionData = new Float32Array([
+        -1.0,-1.0,
+         1.0,-1.0,
+        -1.0, 1.0,
+         1.0,-1.0,
+         1.0, 1.0,
+        -1.0, 1.0
+    ]);
+
+
+    // Initialize a shader program, so WebGL knows how to draw our data
+    function initShaderProgram(gl, vsSource, fsSource) {
+        const shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, loadShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(shaderProgram, loadShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(shaderProgram);
+
+        // If creating the shader program failed, alert
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+            return null;
+        }
+
+        return shaderProgram;
+    }
+
+    // creates a shader of the given type, uploads the source and compiles it.
+    function loadShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+
+        // See if it compiled successfully
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+
+        return shader;
+    }
+
+    // Initialize shader program
+    const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+
+    // look up where the vertex data needs to go.
+    var positionLocation = gl.getAttribLocation(shaderProgram, "a_position");
+    var textureLoc = gl.getUniformLocation(shaderProgram, "u_image");
+
+    // Create a vertex buffer
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
+
+    // Create texture
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    // Initialize rendering
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(1.0,0.0,0.0,1.0);
+
+    function drawScene() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(shaderProgram);
+
+        // Turn on the vertex attribute
+        gl.enableVertexAttribArray(positionLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // Draw the rectangle
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // Draw the scene repeatedly
+    function render() {
+        video = document.getElementById('video');
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+        drawScene();
+        requestAnimationFrame(render);
+    }
+
+        window.addEventListener('DOMContentLoaded', function() {            
+            var isStreaming = false;
+            switchcamerabtn = document.getElementById('switchCameraBtn');
+            video = document.getElementById('video');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            // Wait until the video stream canvas play
+            video.addEventListener('canplay', function(e) {
+                if (!isStreaming) {
+                    // videoWidth isn't always set correctly in all browsers
+                    if (video.videoWidth > 0) h = video.videoHeight / (video.videoWidth / w);
+                    canvas.setAttribute('width', w);
+                    canvas.setAttribute('height', h);
+                    isStreaming = true;
+                }
+            }, false);
+
+            // Wait for the video to start to play
+            video.addEventListener('play', function() {
+                //Setup image memory
+                //var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                //var d = id.data;
+
+                // if (wasmModuleLoaded) {
+                //     mallocAndCallSFilter();
+                // } else {
+                //     wasmModuleLoadedCallbacks.push(mallocAndCallSFilter);
+                // }
+
+                // function mallocAndCallSFilter() {
+                //     if (dst != null)
+                //     {
+                //         _free(dst);
+                //         dst = null;
+                //     }
+
+                //     dst = _malloc(d.length);
+
+                //     //console.log("What " + d.length);
+
+                //     sFilter();
+                //}
+            });
+
+            // check whether we can use facingMode
+            var supports = navigator.mediaDevices.getSupportedConstraints();
+            if (supports['facingMode'] === true) {
+                switchcamerabtn.disabled = false;
+            }
+
+            startCameraBtn.addEventListener("click", () => {
+                Module._AEWebCreateBeautyEngine()
+                capture();
+                //captureToCanvas();                
+                requestAnimationFrame(render);
+            })
+
+            switchcamerabtn.addEventListener('click', function() {
+                if (stream == null)
+                    return
+
+                stream.getTracks().forEach(t => {
+                    t.stop();
+                });
+
+                shouldFaceUser = !shouldFaceUser;
+                capture();
+            });                    
+        });
+        function capture() {
+            var constraints = { audio: false, video: { width: 640, height: 480, facingMode: shouldFaceUser ? 'user' : 'environment' } };
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(mediaStream) {
+                    var video = document.querySelector('video');
+                    stream = mediaStream;
+                    video.srcObject = mediaStream;
+                    //video.onloadedmetadata = function(e) {
+                        //video.play();
+                    //};
+                })
+                .catch(function(err) {
+                    console.log(err.message);
+                });
+        }
+
+        function captureToCanvas () {
+            let that = this;
+            try {
+                // 根据视频大小设置canvas大小
+                // let w = that.ctx.videoWidth;
+                // let h = that.ctx.videoHeight;
+                //that.ctx.width = w;
+                //that.ctx.height = h;
+                var canvas = document.getElementById('canvas');
+
+                var imageData = that.ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                if (imageData.length != faceImgBufferLength && faceImgBuffer != null) {
+                    Module._free(faceImgBuffer);
+                    faceImgBuffer = null;
+                }
+                if (faceImgBuffer == null)
+                {
+                    faceImgBuffer = Module._malloc(imageData.length);
+                    faceImgBufferLength = imageData.length;
+                }
+
+
+                HEAPU8.set(imageData, faceImgBuffer);
+                let count = Module._AEWebDetectFace(faceImgBuffer, canvas.width, canvas.height, 0, 0);
+                that.ctx.drawImage(that.video, 0, 0, canvas.width, canvas.height);
+             } catch (e) {
+               console.log(e);
+             };
+             // 33毫秒绘制一次
+             that.canvasTimer = setTimeout(that.captureToCanvas.bind(that), 33);
+       }
+    </script>
+</body>
+</html>
