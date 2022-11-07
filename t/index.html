@@ -18,8 +18,8 @@
         <div>
             <!-- <button disabled id="initBtn" style="height:64px">初始化引擎</button>  -->
             <!-- <button disabled id="initFaceBtn" style="height:64px">初始化人脸检测</button>  -->
-            <button disabled id="startCameraBtn" style="height:64px">打开摄像头</button>
-            <button disabled id="switchCameraBtn" style="height:64px">切换摄像头</button>
+            <button disabled id="startCameraBtn" style="height:44px">打开摄像头</button>
+            <button disabled id="switchCameraBtn" style="height:44px">切换摄像头</button>
             <input disabled id="beautyCheck" type="checkbox" checked="true">开启美颜</input> 
             <input disabled id="lipCheck" type="checkbox">开启美妆</input> 
             <input disabled id="stickerCheck" type="checkbox">开启贴纸</input> 
@@ -32,17 +32,6 @@
     <script type='text/javascript'>
         window.addEventListener("wasmLoaded", () => {
             console.log("wasmLoaded")
-            //initBtn.disabled = false;
-            // initBtn.addEventListener("click", () => {
-            //     Module._AEWebInit()
-            //     initFaceBtn.disabled = false;
-            // })
-
-            // initFaceBtn.addEventListener("click", () => {
-            //     res = Module._AEWebCreateFaceHandle()
-            //     console.log(res)
-            //     startCameraBtn.disabled = false;
-            // })
             Module._AEWebInit();
             res = Module._AEWebCreateFaceHandle()
             console.log(res)
@@ -129,10 +118,9 @@
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
             //console.log('GL Error - 1: ' + gl.getError());
-            //detectFaceGL();
+            detectFaceGL();
             //console.log('GL Error - 2: ' + gl.getError());
             Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
-            //console.log('GL Error - 3: ' + gl.getError());
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, null);            
             Module._free(strPointer);
@@ -143,8 +131,10 @@
             var isStreaming = false;
             switchcamerabtn = document.getElementById('switchCameraBtn');
             video = document.createElement("video");
-            video.playsInline = true;
-            video.muted = true;            
+            video.setAttribute("autoplay", "");
+            video.setAttribute("muted", "");
+            video.setAttribute("playsinline", "");            
+
 
             canvas = document.getElementById('canvas');
 
