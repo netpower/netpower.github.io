@@ -132,6 +132,8 @@
             //console.log('GL Error - 2: ' + gl.getError());
             Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
             //console.log('GL Error - 3: ' + gl.getError());
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, null);            
             Module._free(strPointer);
             requestAnimationFrame(render);
         }
