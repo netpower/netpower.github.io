@@ -135,6 +135,7 @@
             video.muted = true;            
 
             canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
 
             // Wait until the video stream canvas play
             video.addEventListener('canplay', function(e) {
