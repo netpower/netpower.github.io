@@ -155,6 +155,11 @@
                 }
             }, false);
 
+            video.addEventListener('error', () => {
+                console.error('Error loading: camera video');
+                console.error(`Error ${video.error.code}; details: ${video.error.message}`);
+            });
+
             // check whether we can use facingMode
             var supports = navigator.mediaDevices.getSupportedConstraints();
 
