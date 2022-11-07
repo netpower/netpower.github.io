@@ -89,7 +89,13 @@
         function render() {
             // https://www.chuyouxiang.com/archives/1014
             if (stream == null) {
+                console.log('stream is null');
                 requestAnimationFrame(render);
+                return;
+            }
+
+            if (video == null) {
+                console.log('video is null');
                 return;
             }
 
@@ -121,11 +127,11 @@
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
-            console.log('GL Error - 1: ' + gl.getError());
+            //console.log('GL Error - 1: ' + gl.getError());
             detectFaceGL();
-            console.log('GL Error - 2: ' + gl.getError());
+            //console.log('GL Error - 2: ' + gl.getError());
             Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
-            console.log('GL Error - 3: ' + gl.getError());
+            //console.log('GL Error - 3: ' + gl.getError());
             Module._free(strPointer);
             requestAnimationFrame(render);
         }
@@ -178,7 +184,6 @@
             startCameraBtn.addEventListener("click", () => {
                 Module._AEWebCreateBeautyEngine()
                 capture();
-                requestAnimationFrame(render);
                 if (supports['facingMode'] === true) {
                     switchcamerabtn.disabled = false;
                 } 
@@ -230,6 +235,7 @@
                     console.log("videoW:"+ videoW + " videoH:" + videoH);
                     video.onloadedmetadata = function(e) {
                         video.play();
+                        render();
                     };
                 })
                 .catch(function(err) {
