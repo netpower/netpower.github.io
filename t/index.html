@@ -121,8 +121,11 @@
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
+            console.log('GL Error - 1: ' + gl.getError());
             detectFaceGL();
+            console.log('GL Error - 2: ' + gl.getError());
             Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
+            console.log('GL Error - 3: ' + gl.getError());
             Module._free(strPointer);
             requestAnimationFrame(render);
         }
