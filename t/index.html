@@ -136,9 +136,12 @@
             var isStreaming = false;
             switchcamerabtn = document.getElementById('switchCameraBtn');
             video = document.createElement("video");
+            var body = document.body;
+            body.appendChild(video);
             video.setAttribute("autoplay", "");
             video.setAttribute("muted", "");
             video.setAttribute("playsInline", "");
+            video.style.display = "none";
 
 
             canvas = document.getElementById('canvas');
