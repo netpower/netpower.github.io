@@ -26,6 +26,7 @@
         </div>
         <div>
             <canvas id="canvas" class="video"></canvas>
+            <canvas id="canvasRaw" style="display:none;"></canvas>
         </div>
     </div>
     <script src="./AeTimeline.js"></script>    
@@ -48,6 +49,7 @@
         var mHeight = 720;
         var textureId = null;
         var video = null;   //摄像头的视频源 HTMLVideoElement
+        var canvasTimer = null;
 
         const gl = document.getElementById('canvas').getContext("webgl");
         // Only continue if WebGL is available and working
@@ -75,6 +77,33 @@
             return tex;
         }
 
+        //帧率统计
+        var frameCnt = 0;
+        var timeElapsed = 0;
+        var lastTime = 0;
+        function calcFPS(){
+            frameCnt++;
+
+            let fps = 0;
+            let timeDelta = 0;
+            const currentTime = performance.now();
+
+            if (lastTime) {
+                timeDelta = currentTime - lastTime;
+                fps = Math.round(1000/((currentTime - lastTime)));
+            }
+            lastTime = currentTime;
+            timeElapsed +=timeDelta;
+
+            if(timeElapsed >= 1000){
+                fps = Math.round(frameCnt*1000/timeElapsed);
+                timeElapsed = 0;
+                frameCnt =0;
+                console.log('FPS:'+fps);
+            }
+         }
+
+        
         function render() {
             // https://www.chuyouxiang.com/archives/1014
             if (stream == null) {
@@ -87,7 +116,18 @@
                 console.log('video is null');
                 return;
             }
+            // let fps = 0;
+            // const currentTime = performance.now();
+            // if (lastTime) {
+            //     fps = Math.round(1000/((currentTime - lastTime)));
+            // }
+            //lastTime = currentTime;
+            //改为固定间隔统计
+            calcFPS();
 
+            //绘制到第二个canvas里，进行人脸检测 -->
+            //captureToRawCanvas();
+            // <--
 
             var canvasId  = 'canvas';
             var strBuffer = new TextEncoder().encode(canvasId);
@@ -96,7 +136,6 @@
             Module.HEAPU8[strPointer + strBuffer.length] = 0;
 
             Module._AEWebMakeCurrent(strPointer);
-            var bFirst = false;
             if (texture == null) {
                 // Create texture
                 console.log('texture is null, Create texture');
@@ -111,19 +150,17 @@
                 // Initialize rendering
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
                 gl.clearColor(0.0,0.0,0.0,1.0);
-                bFirst = true;
             }
             
             //console.log('texture:' + textureId);            
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, texture);
-            if (bFirst) {
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);    
-            }else{
-                gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, video);    
-            }
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+
             //console.log('GL Error - 1: ' + gl.getError());
-            detectFaceGL();
+            if (beautyCheck.checked) {
+                detectFaceGL();
+            }            
             //console.log('GL Error - 2: ' + gl.getError());
             Module._AERenderCameraImage(strPointer, textureId, !beautyCheck.checked);//
             gl.activeTexture(gl.TEXTURE0);
@@ -140,6 +177,8 @@
             video.muted = true;            
 
             canvas = document.getElementById('canvas');
+            
+            canvasRaw = document.getElementById('canvasRaw');
 
             // Wait until the video stream canvas play
             video.addEventListener('canplay', function(e) {
@@ -157,6 +196,9 @@
                     console.log("video size is:"+ video.videoWidth + "x" + video.videoHeight);
                     console.log("set canvas size:"+ mWidth + "x" + mHeight);
                     isStreaming = true;
+
+                    canvasRaw.setAttribute('width', mWidth);
+                    canvasRaw.setAttribute('height', mHeight);                    
                 }
             }, false);
 
@@ -232,12 +274,47 @@
                     video.onloadedmetadata = function(e) {
                         video.play();
                         render();
+                        // 开定时器进行检测 -->
+                        //captureToRawCanvasPeriodically();
+                        // <--
                     };
                 })
                 .catch(function(err) {
                     console.log(err.message);
                 });
         }
+
+        function captureToRawCanvasPeriodically () {
+            let that = this;
+            captureToRawCanvas();
+             // 16毫秒绘制一次
+             that.canvasTimer = setTimeout(that.captureToRawCanvasPeriodically.bind(that), 16);
+       }
+
+
+        function captureToRawCanvas () {
+            let that = this;
+            try {
+                var canvas = document.getElementById('canvasRaw');
+                let ctx = canvas.getContext('2d');
+                ctx.drawImage(that.video, 0, 0, canvas.width, canvas.height);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                if (imageData.length != faceImgBufferLength && faceImgBuffer != null) {
+                    Module._free(faceImgBuffer);
+                    faceImgBuffer = null;
+                }
+                if (faceImgBuffer == null){
+                    faceImgBuffer = Module._malloc(imageData.length);
+                    faceImgBufferLength = imageData.length;
+                }
+                HEAPU8.set(imageData, faceImgBuffer);
+                Module._AEWebDetectFace(faceImgBuffer, canvas.width, canvas.height, 0, 0);
+            } 
+            catch (e) {
+               console.log(e);               
+             };
+       }
+
 
         function detectFaceGL (){
             try {
