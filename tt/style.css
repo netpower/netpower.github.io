@@ -10,7 +10,7 @@ body {
   left: 0;
 }
 
-#video {
+#canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -60,8 +60,8 @@ button {
 #takePhotoButton {
   left: calc(50% - 40px);
   top: calc(50% - 40px);
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background-image: url('img/ic_photo_camera_white_48px.svg');
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.5);
@@ -71,6 +71,7 @@ button {
   background-color: #fff;
 }
 
+/*
 #toggleFullScreenButton {
   display: none;
   width: 64px;
@@ -83,11 +84,53 @@ button {
 #toggleFullScreenButton[aria-pressed='true'] {
   background-image: url('img/ic_fullscreen_exit_white_48px.svg');
 }
+*/
+
+#switchBeautyButton {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background-image: url('img/magic-no-select.png');
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  background-size:68%;
+}
+#switchBeautyButton[aria-pressed='true'] {
+  background-image: url('img/magic.png');
+}
+
+
+#switchStickerButton {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background-image: url('img/eye-mask-no-select.png');
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  background-size:68%;
+}
+#switchStickerButton[aria-pressed='true'] {
+  background-image: url('img/eye-mask.png');
+}
+
+#switchLipButton {
+  display: block;
+  width: 44px;
+  height: 44px;
+  background-image: url('img/lipstick-no-select.png');
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  background-size:68%;
+}
+#switchLipButton[aria-pressed='true'] {
+  background-image: url('img/lipstick.png');
+}
+
 
 #switchCameraButton {
   display: none;
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   background-image: url('img/ic_camera_rear_white_36px.svg');
   border-radius: 50%;
   background-color: rgba(0, 0, 0, 0.5);
@@ -115,14 +158,31 @@ button {
   }
 
   #switchCameraButton {
-    left: calc(20% - 32px);
+    left: calc(16% - 32px);
     top: calc(50% - 32px);
   }
 
+  #switchBeautyButton {
+    left: calc(32% - 32px);
+    top: calc(50% - 32px);
+  }
+
+  #switchLipButton {
+    left: calc(68% - 16px);
+    top: calc(50% - 32px);
+  }
+
+  #switchStickerButton {
+    left: calc(84% - 16px);
+    top: calc(50% - 32px);
+  }
+
+/*
   #toggleFullScreenButton {
     left: calc(80% - 32px);
     top: calc(50% - 32px);
   }
+*/  
 }
 
 @media screen and (orientation: landscape) {
@@ -149,11 +209,27 @@ button {
 
   #switchCameraButton {
     left: calc(50% - 32px);
-    top: calc(18% - 32px);
+    top: calc(84% - 32px);
   }
 
+  #switchStickerButton {
+    left: calc(50% - 32px);
+    top: calc(16% - 32px);
+  }
+
+  #switchBeautyButton {
+    left: calc(50% - 32px);
+    top: calc(68% - 32px);
+  }
+
+  #switchLipButton {
+    left: calc(50% - 32px);
+    top: calc(32% - 32px);
+  }  
+/*
   #toggleFullScreenButton {
     left: calc(50% - 32px);
     top: calc(82% - 32px);
   }
+*/  
 }
