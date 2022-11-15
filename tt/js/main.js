@@ -31,6 +31,7 @@ var mWidth  = 1280;
 var mHeight = 720;
 var textureId = null;
 var canvasTimer = null;
+var rendering = false;
 
 const gl = document.getElementById('canvas').getContext("webgl");
 // Only continue if WebGL is available and working
@@ -293,17 +294,18 @@ function initCameraStream() {
       console.log(track);
       track.stop();
     });
+    window.stream = null;
   }
 
   // we ask for a square resolution, it will cropped on top (landscape)
   // or cropped at the sides (landscape)
-  //var size = 1280;
+  var size = 1280;
 
   var constraints = {
     audio: false,
     video: {
-      width: { ideal: mWidth },
-      height: { ideal: mHeight },
+      width: { ideal: size },
+      height: { ideal: size },
       //width: { min: 1024, ideal: window.innerWidth, max: 1920 },
       //height: { min: 776, ideal: window.innerHeight, max: 1080 },
       facingMode: currentFacingMode,
@@ -337,7 +339,10 @@ function initCameraStream() {
     console.log("videoW:"+ videoW + " videoH:" + videoH);
     video.onloadedmetadata = function(e) {
         video.play();
-        render();
+        if(!rendering){
+          render();
+          rendering = true;
+        }        
     };
   }
 
