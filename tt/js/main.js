@@ -19,7 +19,7 @@ var beautyOn  = 0;
 var stickerOn = 0;
 var lipOn = 0;
 var amountOfCameras = 0;
-var currentFacingMode = 'environment';
+var currentFacingMode = 'user';
 var wasmLoaded = false;
 
 var faceImgBuffer = null;
@@ -242,8 +242,8 @@ function initCameraUI() {
   switchLipButton.setAttribute('aria-pressed',     lipOn == 1);
 
   // -- switch camera part
-  //if (amountOfCameras > 1) 
-  //{
+  if (amountOfCameras > 1) 
+  {
     switchCameraButton.style.display = 'block';
 
     switchCameraButton.addEventListener('click', function () {
@@ -252,7 +252,7 @@ function initCameraUI() {
 
       initCameraStream();
     });
-  //}
+  }
 
   // Listen for orientation changes to make sure buttons stay at the side of the
   // physical (and virtual) buttons (opposite of camera) most of the layout change is done by CSS media queries
